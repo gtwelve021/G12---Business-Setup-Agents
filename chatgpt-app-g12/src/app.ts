@@ -74,7 +74,8 @@ export function createG12Server() {
       outputSchema: searchOutputSchema,
       annotations: {
         readOnlyHint: true,
-        openWorldHint: true
+        openWorldHint: true,
+        destructiveHint: false
       },
       _meta: {
         "openai/toolInvocation/invoking": "Searching G12...",
@@ -109,7 +110,8 @@ export function createG12Server() {
       outputSchema: fetchOutputSchema,
       annotations: {
         readOnlyHint: true,
-        openWorldHint: true
+        openWorldHint: true,
+        destructiveHint: false
       },
       _meta: {
         "openai/toolInvocation/invoking": "Opening G12 page...",
@@ -139,7 +141,9 @@ export function createG12Server() {
       inputSchema: searchOutputSchema,
       outputSchema: searchOutputSchema,
       annotations: {
-        readOnlyHint: true
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false
       },
       _meta: {
         ui: { resourceUri: TEMPLATE_URI },
