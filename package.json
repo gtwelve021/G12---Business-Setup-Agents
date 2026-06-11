@@ -7,5 +7,9 @@
   ],
   "scripts": {
     "build": "npm --prefix chatgpt-app-g12 run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.2.3"
   }
 }
