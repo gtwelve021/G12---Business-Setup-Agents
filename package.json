@@ -1,0 +1,11 @@
+{
+  "name": "g12-business-setup-agents",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "chatgpt-app-g12"
+  ],
+  "scripts": {
+    "build": "npm --prefix chatgpt-app-g12 run build"
+  }
+}
