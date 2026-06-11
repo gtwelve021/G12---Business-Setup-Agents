@@ -1,25 +1,9 @@
-# Ignore all files by default, then allow only the app and deployment config
-*
-!.vercelignore
-!vercel.json
-!package.json
-!package-lock.json
-!api/
-!public/
-!chatgpt-app-g12/
-!chatgpt-app-g12/package.json
-!chatgpt-app-g12/package-lock.json
-!chatgpt-app-g12/tsconfig.json
-!chatgpt-app-g12/src/
-!chatgpt-app-g12/scripts/
-!chatgpt-app-g12/README.md
-!chatgpt-app-g12/public/
-
-# Exclude build artifacts and dependencies
+# Ignore dependencies, build artifacts, and large unrelated folders
 node_modules/
 chatgpt-app-g12/node_modules/
 chatgpt-app-g12/dist/
 Wordpress/
-"Wordpress/"
 *.log
 *.md
+.git
+.vercel

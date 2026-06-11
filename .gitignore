@@ -1,2 +1,6 @@
 # WordPress core files
-/wordpress/
+/Wordpress/
+node_modules/
+chatgpt-app-g12/node_modules/
+dist/
+.vercel
