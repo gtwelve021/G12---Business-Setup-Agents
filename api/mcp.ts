@@ -1,10 +1,6 @@
 import "dotenv/config";
-import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { createG12Server } from "../chatgpt-app-g12/src/app.js";
-
-const transports: Record<string, StreamableHTTPServerTransport> = {};
 
 function renderBrowserStatus(res: any) {
   res
@@ -42,79 +38,52 @@ export default async function handler(req: any, res: any) {
   if (method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Mcp-Session-Id");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Mcp-Protocol-Version");
     res.status(204).end();
     return;
   }
 
-  const sessionId = String(req.headers["mcp-session-id"] || req.headers["mcp-session-id" as any] || "");
-  let transport = sessionId ? transports[sessionId] : undefined;
-
   if (method === "POST") {
-    const body = req.body;
+    const server = createG12Server();
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined
+    });
 
-    if (!transport && isInitializeRequest(body)) {
-      transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (newSessionId) => {
-          if (transport) transports[newSessionId] = transport;
-        }
-      });
+    res.on("close", () => {
+      void transport.close();
+      void server.close();
+    });
 
-      transport.onclose = () => {
-        if (transport?.sessionId) delete transports[transport.sessionId];
-      };
-
-      const server = createG12Server();
+    try {
       await server.connect(transport);
+      await transport.handleRequest(req, res, req.body);
+    } catch (error) {
+      console.error("MCP request failed", error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: "2.0",
+          error: { code: -32603, message: "Internal server error" },
+          id: null
+        });
+      }
     }
-
-    if (!transport) {
-      res.status(400).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message: "Bad Request: missing valid MCP session id"
-        },
-        id: null
-      });
-      return;
-    }
-
-    await transport.handleRequest(req, res, req.body);
     return;
   }
 
   if (method === "GET") {
-    if (!transport) {
-      const accept = String(req.headers.accept || "");
-      if (accept.includes("text/html")) {
-        renderBrowserStatus(res);
-        return;
-      }
-
-      res.status(400).json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message: "Bad Request: missing valid MCP session id"
-        },
-        id: null
-      });
+    const accept = String(req.headers.accept || "");
+    if (accept.includes("text/html")) {
+      renderBrowserStatus(res);
       return;
     }
-
-    await transport.handleRequest(req, res);
+    res.setHeader("Allow", "POST, OPTIONS");
+    res.status(405).send("Method Not Allowed");
     return;
   }
 
   if (method === "DELETE") {
-    if (!transport) {
-      res.status(400).send("Missing valid MCP session id");
-      return;
-    }
-
-    await transport.handleRequest(req, res);
+    res.setHeader("Allow", "POST, OPTIONS");
+    res.status(405).send("Method Not Allowed");
     return;
   }
 

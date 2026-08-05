@@ -1,13 +1,15 @@
 {
   "name": "g12-chatgpt-app",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc && node scripts/copy-assets.mjs",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:mcp": "npm run build && node scripts/mcp-smoke.mjs",
+    "test:mcp:live": "node scripts/mcp-live-smoke.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

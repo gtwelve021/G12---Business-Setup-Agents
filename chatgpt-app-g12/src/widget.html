@@ -86,6 +86,7 @@
     <main class="wrap" id="results"></main>
     <script>
       const root = document.getElementById("results");
+      let latestOutput = window.openai?.toolOutput;
 
       function render(output) {
         const results = Array.isArray(output?.results) ? output.results : [];
@@ -124,10 +125,26 @@
         }
       }
 
-      render(window.openai?.toolOutput);
+      window.addEventListener(
+        "message",
+        (event) => {
+          if (event.source !== window.parent) return;
+          const message = event.data;
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.method !== "ui/notifications/tool-result") return;
+          latestOutput = message.params?.structuredContent;
+          render(latestOutput);
+        },
+        { passive: true }
+      );
+
+      render(latestOutput);
       window.addEventListener(
         "openai:set_globals",
-        (event) => render(event.detail?.globals?.toolOutput ?? window.openai?.toolOutput),
+        (event) => {
+          latestOutput = event.detail?.globals?.toolOutput ?? window.openai?.toolOutput;
+          render(latestOutput);
+        },
         { passive: true }
       );
     </script>

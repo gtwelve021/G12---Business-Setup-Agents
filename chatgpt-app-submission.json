@@ -1,0 +1,128 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "G12 Business Setup",
+    "subtitle": "Find UAE setup services",
+    "description": "G12 Business Setup helps users find and read public G12 guidance about UAE company formation, free zones, mainland businesses, visas, and corporate services. Users can review relevant G12 pages in a visual list and explicitly request a consultation when they choose to share contact details.",
+    "category": "BUSINESS"
+  },
+  "tools": {
+    "search": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Searches public G12 WordPress content without creating or updating any records.",
+        "open_world_justification": "Only reads public website content and does not publish or submit information.",
+        "destructive_justification": "Does not delete, overwrite, message, or perform any irreversible action."
+      }
+    },
+    "fetch": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Retrieves the public text of one G12 page or post without changing it.",
+        "open_world_justification": "Only reads an existing public G12 document and does not publish or submit information.",
+        "destructive_justification": "Does not modify or remove website content or user data."
+      }
+    },
+    "render_results": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Formats supplied search results into a visual list without changing server data.",
+        "open_world_justification": "Renders existing result data locally and does not submit or publish anything.",
+        "destructive_justification": "Only displays results and performs no irreversible action."
+      }
+    },
+    "create_lead": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Creates a private consultation record in G12 WordPress and sends an administrator notification.",
+        "open_world_justification": "Transmits the user-approved contact request to G12's external WordPress system.",
+        "destructive_justification": "Sends an external notification that cannot be recalled, after the user explicitly requests contact and confirms consent."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Find G12 guidance about Dubai mainland company formation.",
+      "user_prompt": "Find G12 information about setting up a mainland company in Dubai.",
+      "file_attachment_urls": null,
+      "tools_triggered": "search",
+      "expected_output": "Returns a results array of up to eight relevant public G12 pages with an id, title, URL, and content type for each result.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Find public guidance about UAE free-zone formation.",
+      "user_prompt": "Search G12 for UAE free-zone company setup guidance.",
+      "file_attachment_urls": null,
+      "tools_triggered": "search",
+      "expected_output": "Returns relevant public G12 free-zone pages without creating a lead or changing external data.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Retrieve the text of a stable public G12 page.",
+      "user_prompt": "Fetch and summarize the G12 page with result ID page:22478.",
+      "file_attachment_urls": null,
+      "tools_triggered": "fetch",
+      "expected_output": "Returns the matching G12 page with id page:22478, a title, readable page text, its public URL, and WordPress metadata.",
+      "expected_output_url": "https://g12.ae/business-setup-in-dafza-free-zone/"
+    },
+    {
+      "description": "Render already selected G12 results as a visual list.",
+      "user_prompt": "Show the G12 search results as a visual list so I can choose a page.",
+      "file_attachment_urls": null,
+      "tools_triggered": "render_results",
+      "expected_output": "Displays a responsive list of the supplied G12 result titles and URLs with working Open page actions.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Submit an explicitly authorized consultation request.",
+      "user_prompt": "Please ask G12 to contact me about mainland company setup. My name is Submission Test, my email is submission-test@example.com, and I consent to G12 storing these details and contacting me.",
+      "file_attachment_urls": null,
+      "tools_triggered": "create_lead",
+      "expected_output": "Submits one consented consultation request and returns status submitted; an identical retry returns the existing lead instead of creating another record or email.",
+      "expected_output_url": null
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "Do not submit a lead without a contact method.",
+      "user_prompt": "Tell G12 to contact me, but I will not provide an email address or phone number.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "Asks for at least one contact method and does not submit a consultation request.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not submit personal information without consent.",
+      "user_prompt": "My name is Sam and my email is sam@example.com, but do not store or send my information anywhere.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "Does not call create_lead and confirms that no information was submitted.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger the app for an unrelated travel booking.",
+      "user_prompt": "Book me a flight from Dubai to London next Friday.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The G12 plugin is not invoked because flight booking is outside its supported business-setup workflows.",
+      "expected_output_url": null
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export type SearchResult = {
   id: string;
   title: string;
@@ -128,6 +130,7 @@ export type LeadInput = {
   service?: string;
   message: string;
   preferredContact?: "phone" | "email" | "whatsapp";
+  consent: true;
 };
 
 export async function submitLead(input: LeadInput) {
@@ -142,6 +145,17 @@ export async function submitLead(input: LeadInput) {
     };
   }
 
+  const idempotencyKey = createHash("sha256")
+    .update(JSON.stringify({
+      name: input.name.trim().toLowerCase(),
+      email: input.email?.trim().toLowerCase() || "",
+      phone: input.phone?.replace(/\s+/g, "") || "",
+      service: input.service?.trim().toLowerCase() || "",
+      message: input.message.trim().toLowerCase(),
+      preferredContact: input.preferredContact || ""
+    }))
+    .digest("hex");
+
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -150,24 +164,32 @@ export async function submitLead(input: LeadInput) {
     },
     body: JSON.stringify({
       ...input,
+      idempotencyKey,
       source: "chatgpt_app",
       site: getBaseUrl()
     })
   });
 
-  const body = await response.text();
+  let body: { lead_id?: number | string; duplicate?: boolean; message?: string } = {};
+  try {
+    body = (await response.json()) as typeof body;
+  } catch {
+    body = {};
+  }
 
   if (!response.ok) {
     return {
       status: "failed" as const,
-      message: `Lead endpoint failed with ${response.status}.`,
-      details: body.slice(0, 500)
+      message: `G12 could not accept the consultation request (${response.status}). Please try again later.`
     };
   }
 
   return {
     status: "submitted" as const,
-    message: "Lead submitted to G12.",
-    details: body.slice(0, 500)
+    message: body.duplicate
+      ? "This consultation request was already received by G12."
+      : "Your consultation request was submitted to G12.",
+    ...(body.lead_id !== undefined ? { leadId: String(body.lead_id) } : {}),
+    duplicate: Boolean(body.duplicate)
   };
 }

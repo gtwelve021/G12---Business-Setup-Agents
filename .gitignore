@@ -2,5 +2,9 @@
 /Wordpress/
 node_modules/
 chatgpt-app-g12/node_modules/
-dist/
+chatgpt-app-g12/dist/
 .vercel
+.env
+*.env
+!.env.example
+*.log

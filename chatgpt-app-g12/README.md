@@ -2,6 +2,8 @@
 
 This is a ChatGPT Apps SDK MCP server for `g12.ae`.
 
+The production endpoint uses stateless Streamable HTTP so requests remain reliable across serverless instances. The results widget consumes the standard MCP Apps `ui/notifications/tool-result` bridge and retains `window.openai` only as a ChatGPT compatibility fallback.
+
 It exposes:
 
 - `search` - search public G12 WordPress content.
@@ -16,6 +18,7 @@ cd chatgpt-app-g12
 copy .env.example .env
 npm install
 npm run build
+npm run test:mcp
 npm start
 ```
 
@@ -49,3 +52,5 @@ G12_LEAD_SECRET=the-same-secret-from-wordpress
 ```
 
 Restart the MCP server after changing `.env`.
+
+Lead submission requires an explicit user request for contact, at least one contact method, and consent to store the details. Identical retries reuse the same WordPress lead instead of creating duplicate posts or emails.

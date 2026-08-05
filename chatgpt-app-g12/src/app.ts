@@ -10,7 +10,7 @@ import {
 } from "./wordpress.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const TEMPLATE_URI = "ui://g12/results.html";
+const TEMPLATE_URI = "ui://g12/results-v2.html";
 
 const searchOutputSchema = {
   results: z.array(
@@ -32,10 +32,17 @@ const fetchOutputSchema = {
   metadata: z.record(z.string(), z.string()).optional()
 };
 
+const leadOutputSchema = {
+  status: z.enum(["submitted", "failed", "not_configured"]),
+  message: z.string(),
+  leadId: z.string().optional(),
+  duplicate: z.boolean().optional()
+};
+
 export function createG12Server() {
   const server = new McpServer({
     name: "g12-business-setup",
-    version: "0.1.0"
+    version: "1.1.0"
   });
 
   const widgetHtml = readFileSync(join(__dirname, "widget.html"), "utf8");
@@ -49,9 +56,10 @@ export function createG12Server() {
         _meta: {
           ui: {
             prefersBorder: true,
+            domain: "https://g12-business-setup-agents.vercel.app",
             csp: {
-              connectDomains: ["https://g12.ae"],
-              resourceDomains: ["https://g12.ae"]
+              connectDomains: [],
+              resourceDomains: []
             }
           },
           "openai/widgetDescription":
@@ -74,7 +82,7 @@ export function createG12Server() {
       outputSchema: searchOutputSchema,
       annotations: {
         readOnlyHint: true,
-        openWorldHint: true,
+        openWorldHint: false,
         destructiveHint: false
       },
       _meta: {
@@ -110,7 +118,7 @@ export function createG12Server() {
       outputSchema: fetchOutputSchema,
       annotations: {
         readOnlyHint: true,
-        openWorldHint: true,
+        openWorldHint: false,
         destructiveHint: false
       },
       _meta: {
@@ -168,24 +176,22 @@ export function createG12Server() {
     {
       title: "Create G12 lead",
       description:
-        "Use this when the user asks G12 to contact them about company formation, visas, corporate services, or consultation.",
+        "Use this only after the user explicitly asks G12 to contact them, provides a name and at least one contact method, and confirms that G12 may store their details and contact them.",
       inputSchema: {
         name: z.string().min(2),
         email: z.string().email().optional(),
         phone: z.string().min(5).optional(),
         service: z.string().optional(),
         message: z.string().min(10),
-        preferredContact: z.enum(["phone", "email", "whatsapp"]).optional()
+        preferredContact: z.enum(["phone", "email", "whatsapp"]).optional(),
+        consent: z.literal(true).describe("Must be true only after the user explicitly agrees to lead storage and contact by G12.")
       },
-      outputSchema: {
-        status: z.enum(["submitted", "failed", "not_configured"]),
-        message: z.string(),
-        details: z.string().optional()
-      },
+      outputSchema: leadOutputSchema,
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
-        openWorldHint: true
+        destructiveHint: true,
+        openWorldHint: true,
+        idempotentHint: true
       },
       _meta: {
         "openai/toolInvocation/invoking": "Sending request to G12...",
@@ -193,6 +199,17 @@ export function createG12Server() {
       }
     },
     async (input) => {
+      if (!input.email && !input.phone) {
+        const result = {
+          status: "failed" as const,
+          message: "Provide at least one contact method: email or phone. No lead was submitted."
+        };
+        return {
+          structuredContent: result,
+          content: [{ type: "text", text: result.message }]
+        };
+      }
+
       const result = await submitLead(input);
       return {
         structuredContent: result,
