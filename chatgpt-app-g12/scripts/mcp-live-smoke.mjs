@@ -11,7 +11,7 @@ try {
   const listed = await client.listTools();
   assert.deepEqual(
     listed.tools.map((tool) => tool.name).sort(),
-    ["create_lead", "fetch", "render_results", "search"]
+    ["create_lead", "fetch", "find_setup_options", "get_document_checklist", "render_results", "search"]
   );
 
   const search = await client.callTool({
@@ -31,6 +31,11 @@ try {
     arguments: { results: search.structuredContent.results }
   });
   assert.equal(rendered.structuredContent?.results?.length, search.structuredContent.results.length);
+
+  const plan = await client.callTool({ name: "find_setup_options", arguments: { activity: "IT consulting", emirate: "Dubai", route: "unsure" } });
+  assert.ok(plan.structuredContent?.options?.some(option => option.status === "found"));
+  const checklist = await client.callTool({ name: "get_document_checklist", arguments: { id: "page:14102" } });
+  assert.equal(checklist.structuredContent?.status, "source_found");
 
   const rejectedLead = await client.callTool({
     name: "create_lead",

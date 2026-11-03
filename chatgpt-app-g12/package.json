@@ -1,6 +1,6 @@
 {
   "name": "g12-chatgpt-app",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test:mcp": "npm run build && node scripts/mcp-smoke.mjs",
+    "test:setup": "npm run build && node scripts/setup-tests.mjs",
     "test:mcp:live": "node scripts/mcp-live-smoke.mjs"
   },
   "dependencies": {

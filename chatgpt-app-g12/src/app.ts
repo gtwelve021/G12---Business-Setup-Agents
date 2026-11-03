@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { findSetupOptions, getDocumentChecklist } from "./setup.js";
 import {
   fetchWordPressDocument,
   searchWordPress,
@@ -29,7 +30,8 @@ const fetchOutputSchema = {
   title: z.string(),
   text: z.string(),
   url: z.string().url(),
-  metadata: z.record(z.string(), z.string()).optional()
+  metadata: z.record(z.string(), z.string()).optional(),
+  documentSections: z.array(z.object({ heading: z.string(), items: z.array(z.string()) })).optional()
 };
 
 const leadOutputSchema = {
@@ -42,7 +44,7 @@ const leadOutputSchema = {
 export function createG12Server() {
   const server = new McpServer({
     name: "g12-business-setup",
-    version: "1.1.0"
+    version: "1.2.0"
   });
 
   const widgetHtml = readFileSync(join(__dirname, "widget.html"), "utf8");
@@ -74,7 +76,7 @@ export function createG12Server() {
     {
       title: "Search G12 website",
       description:
-        "Use this when the user asks about UAE business setup, mainland, free zone, offshore, visas, corporate tax, or related G12 services.",
+        "Use this when the user wants public G12 service pages about UAE company formation, Dubai mainland, free-zone setup, visas, or related corporate services. This is G12 website search, not a government or legal verification tool. Use find_setup_options for a business setup brief; do not use for unrelated travel or general web search.",
       inputSchema: {
         query: z.string().min(2).describe("Search phrase, for example 'Dubai mainland company setup'."),
         limit: z.number().int().min(1).max(10).optional()
@@ -82,7 +84,7 @@ export function createG12Server() {
       outputSchema: searchOutputSchema,
       annotations: {
         readOnlyHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
         destructiveHint: false
       },
       _meta: {
@@ -118,7 +120,7 @@ export function createG12Server() {
       outputSchema: fetchOutputSchema,
       annotations: {
         readOnlyHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
         destructiveHint: false
       },
       _meta: {
@@ -133,7 +135,7 @@ export function createG12Server() {
         content: [
           {
             type: "text",
-            text: `${doc.title}\n${doc.url}\n\n${doc.text}`
+            text: `${doc.title}\n${doc.url}\n\n${doc.text}\n\nSource: G12 website, not independent authority verification. Confirm current pricing, tax treatment and eligibility before relying on website claims.`
           }
         ]
       };
@@ -170,6 +172,37 @@ export function createG12Server() {
       ]
     })
   );
+
+  server.registerTool("find_setup_options", {
+    title: "Find G12 setup options",
+    description: "Use this when the user wants to start a UAE company, explore mainland versus free zone, or prepare a business setup consultation brief. Ask for their business activity first; include only preferences they actually provided. Searches live G12 pages. Does not determine legal eligibility, calculate prices, collect contact details or submit a lead.",
+    inputSchema: {
+      activity: z.string().trim().min(2).max(300).describe("Business activity in the user's words, e.g. IT consulting or clothing trading. Do not guess a licence code."),
+      emirate: z.enum(["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain"]).optional(),
+      route: z.enum(["mainland", "free_zone", "unsure"]).optional(),
+      visas: z.number().int().min(0).max(10000).optional().describe("User's requested number of visas, not an approved quota."),
+      shareholders: z.enum(["individual", "corporate", "mixed"]).optional(),
+      budgetAed: z.number().positive().max(1000000000).optional().describe("User's stated budget, not an estimate or G12 quote.")
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true }
+  }, async input => {
+    const result = await findSetupOptions(input);
+    return { structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  server.registerTool("get_document_checklist", {
+    title: "Read source-linked document checklist",
+    description: "Use this when the user asks what documents to prepare for a selected G12 setup page. First obtain an exact page id from search or find_setup_options. Returns only explicit document sections from that live page, or clearly reports that G12 confirmation is needed. Preserve conditional language and shareholder headings. Do not request document uploads or treat this as legal verification.",
+    inputSchema: { id: z.string().regex(/^(?:page|post|lp):[1-9]\d*$/).describe("Exact id returned by G12 search; never invent a page id.") },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: true }
+  }, async ({ id }) => {
+    try {
+      const result = await getDocumentChecklist(id);
+      return { structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
+    } catch {
+      return { isError: true, content: [{ type: "text", text: "The G12 source page could not be retrieved. No checklist was generated. Try again or ask G12 to confirm the requirements." }] };
+    }
+  });
 
   server.registerTool(
     "create_lead",

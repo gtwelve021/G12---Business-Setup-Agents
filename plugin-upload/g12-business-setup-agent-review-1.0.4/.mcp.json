@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "g12-business-setup": {
+      "url": "https://agent.g12.ae/mcp"
+    }
+  }
+}

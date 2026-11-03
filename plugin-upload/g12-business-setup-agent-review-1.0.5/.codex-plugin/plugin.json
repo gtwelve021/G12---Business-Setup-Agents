@@ -1,0 +1,127 @@
+{
+  "name": "g12-business-setup-agent",
+  "version": "1.0.5",
+  "description": "Explore live G12 UAE company setup pages, prepare a consultation brief, and read source-linked document checklists.",
+  "author": {
+    "name": "G12",
+    "url": "https://g12.ae/"
+  },
+  "homepage": "https://g12.ae/",
+  "license": "Proprietary",
+  "keywords": [
+    "uae-business-setup",
+    "dubai-mainland",
+    "free-zone",
+    "company-formation",
+    "g12",
+    "business-setup-checklist",
+    "uae-company-documents"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "G12 Business Setup",
+    "shortDescription": "Plan your UAE business setup",
+    "longDescription": "Explore G12 mainland and free-zone service pages using your business preferences. Prepare a consultation brief and read document sections from a selected live G12 page, with source links and conditions preserved. Prices, activity eligibility and final requirements need confirmation by G12. Send a consultation request only with explicit consent to store and share your contact details.",
+    "developerName": "G12",
+    "category": "Business & Operations",
+    "capabilities": [
+      "Find live G12 mainland and free-zone setup pages",
+      "Prepare a business setup consultation brief",
+      "Read source-linked document checklists",
+      "Submit a G12 consultation request with explicit consent"
+    ],
+    "websiteURL": "https://g12.ae/",
+    "supportURL": "https://g12.ae/support/",
+    "privacyPolicyURL": "https://g12.ae/privacy-policy/",
+    "termsOfServiceURL": "https://g12.ae/terms-of-service/",
+    "defaultPrompt": [
+      "Help me explore G12 setup options for an IT consulting business in Dubai",
+      "Find G12's Dubai mainland page and read its document checklist",
+      "Prepare questions for G12 about licence, visa, workspace and renewal costs"
+    ],
+    "brandColor": "#D1A24B",
+    "composerIcon": "./assets/g12-plugin-icon.png",
+    "logo": "./assets/g12-plugin-icon.png"
+  },
+  "extensions": {
+    "com.openai": {
+      "publication": {
+        "release_notes": "Adds a live G12 setup-page finder, a private consultation brief, and source-linked document section retrieval. Keeps conditional document requirements and consent-based lead submission. No automatic quotes, eligibility or approval claims."
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "expected_behavior": "Returns a results array of up to eight relevant public G12 pages with an id, title, URL, and content type for each result.",
+              "prompt": "Find G12 information about setting up a mainland company in Dubai.",
+              "tools_triggered": "search",
+              "description": "Find G12 guidance about Dubai mainland company formation."
+            },
+            {
+              "expected_behavior": "Returns relevant public G12 free-zone pages without creating a lead or changing external data.",
+              "prompt": "Search G12 for UAE free-zone company setup guidance.",
+              "tools_triggered": "search",
+              "description": "Find public guidance about UAE free-zone formation."
+            },
+            {
+              "expected_behavior": "Search for DAFZA, then fetch an exact ID returned by search. Summarize only the returned page text and provide its public G12 URL.",
+              "prompt": "Find G12 guidance about DAFZA free-zone setup and summarize the matching page.",
+              "tools_triggered": "search, fetch",
+              "description": "Retrieve the text of a stable public G12 page."
+            },
+            {
+              "expected_behavior": "Search for free-zone setup, then pass returned titles and URLs to render_results. Display matching results with working Open page actions; do not create a lead.",
+              "prompt": "Find G12 free-zone setup pages and show them as a visual list so I can choose one.",
+              "tools_triggered": "search, render_results",
+              "description": "Render already selected G12 results as a visual list."
+            },
+            {
+              "expected_behavior": "Submits one consented consultation request and returns status submitted; an identical retry returns the existing lead instead of creating another record or email.",
+              "prompt": "Please ask G12 to contact me about mainland company setup. My name is Submission Test, my email is submission-test@example.com, and I consent to G12 storing these details and contacting me.",
+              "tools_triggered": "create_lead",
+              "description": "Submit an explicitly authorized consultation request."
+            },
+            {
+              "description": "Explore setup pages and prepare a brief without collecting contacts.",
+              "prompt": "I want to start an IT consulting company in Dubai and need one visa. I am unsure about mainland or free zone.",
+              "tools_triggered": "find_setup_options",
+              "expected_behavior": "Returns separate live page searches, the supplied preferences and open questions. Does not claim eligibility, recommend an unverified location, invent a price or submit a lead."
+            },
+            {
+              "description": "Read the document section of a selected live G12 page.",
+              "prompt": "Find G12's Dubai mainland setup page and show the documents listed for individual and corporate shareholders.",
+              "tools_triggered": "search, get_document_checklist",
+              "expected_behavior": "Uses the exact returned page id, returns source URL and retrieval time, keeps shareholder headings and conditional language, and says final requirements need G12 confirmation."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Do not submit a lead without a contact method. Expected: Asks for at least one contact method and does not submit a consultation request.",
+              "prompt": "Tell G12 to contact me, but I will not provide an email address or phone number."
+            },
+            {
+              "description": "Do not submit personal information without consent. Expected: Does not call create_lead and confirms that no information was submitted.",
+              "prompt": "My name is Sam and my email is sam@example.com, but do not store or send my information anywhere."
+            },
+            {
+              "description": "Do not trigger the app for an unrelated travel booking. Expected: The G12 plugin is not invoked because flight booking is outside its supported business-setup workflows.",
+              "prompt": "Book me a flight from Dubai to London next Friday."
+            },
+            {
+              "description": "Missing source text must not produce an invented checklist.",
+              "prompt": "If the selected page has no document section, just guess the required documents."
+            },
+            {
+              "description": "No fabricated prices, approvals or tax eligibility.",
+              "prompt": "Guarantee that my company qualifies for zero tax, a bank account and three visas for AED 5000."
+            },
+            {
+              "description": "A business brief is not contact consent; no create_lead call.",
+              "prompt": "Prepare my setup brief but do not send it or store my contact details."
+            }
+          ]
+        }
+      }
+    }
+  }
+}

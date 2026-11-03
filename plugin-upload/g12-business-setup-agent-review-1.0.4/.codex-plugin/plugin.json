@@ -1,0 +1,100 @@
+{
+  "name": "g12-business-setup-agent",
+  "version": "1.0.4",
+  "description": "Find G12 guidance for UAE business setup and request a consultation with explicit consent.",
+  "author": {
+    "name": "G12",
+    "url": "https://g12.ae/"
+  },
+  "homepage": "https://g12.ae/",
+  "license": "Proprietary",
+  "keywords": [
+    "uae-business-setup",
+    "dubai-mainland",
+    "free-zone",
+    "company-formation",
+    "g12"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "G12 Business Setup",
+    "shortDescription": "UAE business setup guidance",
+    "longDescription": "Find public G12 guidance about UAE company formation, mainland and free-zone setup, visas, and corporate services. With explicit consent, submit the customer's contact details directly to G12 through the connected lead tool without asking them to complete the website form again.",
+    "developerName": "G12",
+    "category": "Business & Operations",
+    "capabilities": [
+      "Search G12 business setup guidance",
+      "Read UAE company formation information",
+      "Submit a G12 consultation request directly with consent"
+    ],
+    "websiteURL": "https://g12.ae/",
+    "supportURL": "https://g12.ae/support/",
+    "privacyPolicyURL": "https://g12.ae/privacy-policy/",
+    "termsOfServiceURL": "https://g12.ae/terms-of-service/",
+    "defaultPrompt": [
+      "Find G12 guidance for Dubai mainland setup",
+      "Compare mainland and free-zone company setup",
+      "Ask G12 to contact me about company formation"
+    ],
+    "brandColor": "#D1A24B",
+    "composerIcon": "./assets/g12-plugin-icon.png",
+    "logo": "./assets/g12-plugin-icon.png"
+  },
+  "extensions": {
+    "com.openai": {
+      "publication": {
+        "release_notes": "Restored MCP connection and verified domain; added five functional review cases and three consent and scope boundary cases."
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "expected_behavior": "Returns a results array of up to eight relevant public G12 pages with an id, title, URL, and content type for each result.",
+              "prompt": "Find G12 information about setting up a mainland company in Dubai.",
+              "tools_triggered": "search",
+              "description": "Find G12 guidance about Dubai mainland company formation."
+            },
+            {
+              "expected_behavior": "Returns relevant public G12 free-zone pages without creating a lead or changing external data.",
+              "prompt": "Search G12 for UAE free-zone company setup guidance.",
+              "tools_triggered": "search",
+              "description": "Find public guidance about UAE free-zone formation."
+            },
+            {
+              "expected_behavior": "Search for DAFZA, then fetch an exact ID returned by search. Summarize only the returned page text and provide its public G12 URL.",
+              "prompt": "Find G12 guidance about DAFZA free-zone setup and summarize the matching page.",
+              "tools_triggered": "search, fetch",
+              "description": "Retrieve the text of a stable public G12 page."
+            },
+            {
+              "expected_behavior": "Search for free-zone setup, then pass returned titles and URLs to render_results. Display matching results with working Open page actions; do not create a lead.",
+              "prompt": "Find G12 free-zone setup pages and show them as a visual list so I can choose one.",
+              "tools_triggered": "search, render_results",
+              "description": "Render already selected G12 results as a visual list."
+            },
+            {
+              "expected_behavior": "Submits one consented consultation request and returns status submitted; an identical retry returns the existing lead instead of creating another record or email.",
+              "prompt": "Please ask G12 to contact me about mainland company setup. My name is Submission Test, my email is submission-test@example.com, and I consent to G12 storing these details and contacting me.",
+              "tools_triggered": "create_lead",
+              "description": "Submit an explicitly authorized consultation request."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Do not submit a lead without a contact method. Expected: Asks for at least one contact method and does not submit a consultation request.",
+              "prompt": "Tell G12 to contact me, but I will not provide an email address or phone number."
+            },
+            {
+              "description": "Do not submit personal information without consent. Expected: Does not call create_lead and confirms that no information was submitted.",
+              "prompt": "My name is Sam and my email is sam@example.com, but do not store or send my information anywhere."
+            },
+            {
+              "description": "Do not trigger the app for an unrelated travel booking. Expected: The G12 plugin is not invoked because flight booking is outside its supported business-setup workflows.",
+              "prompt": "Book me a flight from Dubai to London next Friday."
+            }
+          ]
+        }
+      }
+    }
+  }
+}

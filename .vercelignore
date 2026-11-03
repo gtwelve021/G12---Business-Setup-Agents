@@ -7,3 +7,7 @@ Wordpress/
 *.md
 .git
 .vercel
+plugin-upload/
+output/
+.playwright-mcp/
+.env*

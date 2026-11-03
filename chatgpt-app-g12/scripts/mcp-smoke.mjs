@@ -39,17 +39,26 @@ try {
   const listed = await client.listTools();
   assert.deepEqual(
     listed.tools.map((tool) => tool.name).sort(),
-    ["create_lead", "fetch", "render_results", "search"]
+    ["create_lead", "fetch", "find_setup_options", "get_document_checklist", "render_results", "search"]
   );
   const byName = Object.fromEntries(listed.tools.map((tool) => [tool.name, tool]));
   assert.deepEqual(byName.search.annotations, {
     readOnlyHint: true,
-    openWorldHint: false,
+    openWorldHint: true,
     destructiveHint: false
   });
   assert.equal(byName.create_lead.annotations.readOnlyHint, false);
   assert.equal(byName.create_lead.annotations.openWorldHint, true);
   assert.equal(byName.create_lead.annotations.destructiveHint, true);
+
+  const plan = await client.callTool({ name: "find_setup_options", arguments: { activity: "IT consulting", emirate: "Dubai", route: "unsure", visas: 1 } });
+  assert.equal(plan.structuredContent.options.length, 2);
+  assert.ok(plan.structuredContent.options.some(option => option.results.length > 0), 'Expected live G12 service pages');
+  const checklist = await client.callTool({ name: "get_document_checklist", arguments: { id: "page:14102" } });
+  assert.equal(checklist.structuredContent.status, "source_found");
+  assert.ok(checklist.structuredContent.sections.some(section => section.items.some(item => /if required/i.test(item))));
+  const noConsent = await client.callTool({ name: "create_lead", arguments: { name: "Validation only", email: "test@example.com", message: "Do not submit this request.", consent: false } });
+  assert.equal(noConsent.isError, true);
 
   const search = await client.callTool({
     name: "search",
@@ -89,7 +98,10 @@ try {
     searchResults: searchContent.results.length,
     fetchedId: fetched.structuredContent.id,
     renderResults: render.structuredContent.results.length,
-    noContactStatus: noContact.structuredContent.status
+    noContactStatus: noContact.structuredContent.status,
+    setupOptions: plan.structuredContent.options.map(option => ({ route: option.route, status: option.status, count: option.results.length })),
+    documentSections: checklist.structuredContent.sections.length,
+    noConsentRejected: noConsent.isError
   }, null, 2));
 } finally {
   await client.close().catch(() => {});

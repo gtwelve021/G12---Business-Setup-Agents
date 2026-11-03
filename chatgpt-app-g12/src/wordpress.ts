@@ -14,6 +14,7 @@ export type DocumentResult = {
   text: string;
   url: string;
   metadata?: Record<string, string>;
+  documentSections?: { heading: string; items: string[] }[];
 };
 
 const DEFAULT_BASE_URL = "https://g12.ae";
@@ -22,7 +23,7 @@ function getBaseUrl() {
   return (process.env.G12_WORDPRESS_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
 }
 
-function stripHtml(value: unknown) {
+export function stripHtml(value: unknown) {
   return String(value ?? "")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -31,8 +32,40 @@ function stripHtml(value: unknown) {
     .replace(/&#8217;/g, "'")
     .replace(/&#8211;/g, "-")
     .replace(/&amp;/g, "&")
+    .replace(/&#(?:x([0-9a-f]+)|(\d+));/gi, (_match, hex, decimal) => {
+      const code = Number.parseInt(hex || decimal, hex ? 16 : 10);
+      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : "";
+    })
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// Extract only explicitly labelled document sections, preserving conditions and
+// shareholder subheadings. Never infer legal requirements from unrelated copy.
+export function extractDocumentSections(html: string) {
+  const headings = [...html.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi)];
+  const sections: { heading: string; items: string[] }[] = [];
+  for (let i = 0; i < headings.length; i++) {
+    const match = headings[i];
+    let heading = stripHtml(match[2]);
+    if (!/(documents?\s+(required|checklist)|required\s+documents?|documentation)/i.test(heading)) continue;
+    let firstBodyHeading = i + 1;
+    // Elementor uses two adjacent h2 widgets for one visual section title.
+    if (headings[i + 1] && Number(headings[i + 1][1]) === Number(match[1]) &&
+        !stripHtml(html.slice(match.index! + match[0].length, headings[i + 1].index!))) {
+      heading += ` ${stripHtml(headings[i + 1][2])}`;
+      firstBodyHeading++;
+    }
+    let end = html.length;
+    for (let j = firstBodyHeading; j < headings.length; j++) {
+      if (Number(headings[j][1]) <= Number(match[1])) { end = headings[j].index!; break; }
+    }
+    const body = html.slice(match.index! + match[0].length, end);
+    const items = [...body.matchAll(/<(li|p|h[3-6])\b[^>]*>([\s\S]*?)<\/\1\s*>/gi)]
+      .flatMap(item => item[2].replace(/<br\s*\/?\s*>|<\/li>/gi, "\n").split(/\r?\n/).map(stripHtml)).filter(Boolean);
+    if (items.length) sections.push({ heading, items: [...new Set(items)].slice(0, 40) });
+  }
+  return sections.slice(0, 6);
 }
 
 function endpointForSubtype(subtype: string) {
@@ -43,6 +76,7 @@ function endpointForSubtype(subtype: string) {
 
 async function wpFetch<T>(path: string): Promise<T> {
   const response = await fetch(`${getBaseUrl()}${path}`, {
+    signal: AbortSignal.timeout(12000),
     headers: {
       accept: "application/json",
       "user-agent": "G12-ChatGPT-App/0.1"
@@ -56,11 +90,12 @@ async function wpFetch<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function searchWordPress(query: string, limit = 8): Promise<SearchResult[]> {
+export async function searchWordPress(query: string, limit = 8, pagesOnly = false): Promise<SearchResult[]> {
   const params = new URLSearchParams({
     search: query,
     per_page: String(Math.min(Math.max(limit, 1), 10))
   });
+  if (pagesOnly) params.set("subtype", "page");
 
   type WpSearchItem = {
     id: number;
@@ -84,6 +119,9 @@ export async function searchWordPress(query: string, limit = 8): Promise<SearchR
 }
 
 export async function fetchWordPressDocument(id: string): Promise<DocumentResult> {
+  if (!/^(?:(?:post|page|lp):)?[1-9]\d*$/.test(id)) {
+    throw new Error("Document id must be a public post, page, or lp id returned by search.");
+  }
   const [subtype, rawId] = id.includes(":") ? id.split(":", 2) : ["post", id];
   const numericId = Number.parseInt(rawId, 10);
 
@@ -98,11 +136,12 @@ export async function fetchWordPressDocument(id: string): Promise<DocumentResult
     title?: { rendered?: string };
     excerpt?: { rendered?: string };
     content?: { rendered?: string };
+    modified_gmt?: string;
   };
 
   const endpoint = endpointForSubtype(subtype);
   const doc = await wpFetch<WpDocument>(
-    `/wp-json/wp/v2/${endpoint}/${numericId}?_fields=id,slug,link,title,excerpt,content`
+    `/wp-json/wp/v2/${endpoint}/${numericId}?_fields=id,slug,link,title,excerpt,content,modified_gmt`
   );
 
   const title = stripHtml(doc.title?.rendered) || "Untitled";
@@ -115,10 +154,13 @@ export async function fetchWordPressDocument(id: string): Promise<DocumentResult
     title,
     text,
     url: doc.link || getBaseUrl(),
+    documentSections: extractDocumentSections(doc.content?.rendered || ""),
     metadata: {
       source: "WordPress",
       type: subtype,
-      slug: doc.slug || ""
+      slug: doc.slug || "",
+      retrievedAt: new Date().toISOString(),
+      ...(doc.modified_gmt ? { pageModifiedAt: `${doc.modified_gmt}Z` } : {})
     }
   };
 }
