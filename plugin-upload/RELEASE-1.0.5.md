@@ -2,6 +2,16 @@
 
 Server version: 1.2.0. Plugin identity and production MCP endpoint are preserved.
 
+## Portal update — 3 November 2026
+
+- Server 1.2.0 deployed to production, deployment `dpl_AbXHXSEvof9StryWkbfzu1QKu36n`, with `https://agent.g12.ae` assigned by Vercel.
+- Uploaded plugin 1.0.5 to the existing plugin. Portal retained its configured MCP app and verified domain.
+- MCP rescan completed: all six tools listed, including `find_setup_options` and `get_document_checklist`; no findings in the latest MCP scan.
+- Metadata had no findings. `g12-setup-planning` appeared under Skills and reached Checks passed; no metadata/skill findings remained.
+- The developer completed the required legal/policy declarations and submitted the update. The portal subsequently listed version 1.0.5 as **In review**, with estimated review completion **4 November 2026**. This date is an estimate, not a guarantee.
+- Submitted release: `pluginrel_1ecec04510a48191a5cef42d9e25fed8`. Public release remains 1.0.4 until the update is approved and published.
+- Browser extension host was unavailable; the update used the existing signed-in Chrome window through native Computer Use. Production tool behavior was checked by the portal scan, not by a new end-to-end ChatGPT conversation.
+
 ## Delivered
 
 - `find_setup_options`: live G12 service-page search using supplied emirate and route preferences, an activity/visa/shareholder/budget brief, and questions for G12. It excludes unrelated service titles and pages explicitly naming another emirate. Search matches are not verified activity or location eligibility.
@@ -23,7 +33,7 @@ Preview introduction: https://g12-business-setup-agents-cjtuaksy5-g12s-projects.
 
 ## Remaining public release steps
 
-The public plugin has not been updated by this work. Deploy this server source to the existing production Vercel project, verify the production MCP endpoint, upload `g12-business-setup-agent-openai-plugin-1.0.5.zip` to the same OpenAI plugin, reconnect/rescan tools, complete the review process and verify the published workflow in ChatGPT. The ZIP alone does not deploy the new tools.
+The server deployment, package upload and scans are complete. Await the 1.0.5 review result, publish the approved update when available, and verify the published workflow in ChatGPT. The ZIP alone does not deploy server tools.
 
 The introduction page has not been installed on g12.ae. No search-engine indexing, directory ranking, new customer usage or successful contact delivery is claimed. Confirm prices and any regulated requirements with G12 before adding a calculator or definitive eligibility feature.
 
